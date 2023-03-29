@@ -44,10 +44,11 @@ Main phases of _Kombucha_ Compilation.
 ```mermaid
 flowchart TD
     A[Scan] --> B[Parse]
-    B --> C{Expand}
-    C --> D(Is Done Expanding?)
+    B --> C[Expand]
+    C --> D{Is Done Expanding?}
     D --> |No| C
     D -->|Yes| F[Generate JSON AST]
+    
 ```
 
 1. Load the contents of the file in memory.
