@@ -20,4 +20,4 @@ Brew.strong()
 - `module` instead of `defmodule`.
 - `struct` instead of `defstruct`.
 - `macro` instead of `defmacro`.
-- `C style comments` (`//`, `/*`)
+- `/*` and `*/` multiline comments.
