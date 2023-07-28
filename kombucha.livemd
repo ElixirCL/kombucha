@@ -1,17 +1,65 @@
-# Kombucha Language
+# Kombucha Programming Language
 
-## Tokenizer
+## Kombucha
 
 ```elixir
 defmodule Kombucha do
-  defp transform(token) do
-    case token do
-      "module" <> rest -> "defmodule" <> rest
-      "{" <> rest -> "do" <> rest
-      "}" <> rest -> "end" <> rest
-      "pub" <> rest -> "def" <> rest
-      token -> token
-    end
+  defp peek(tokens, count \\ 1) do
+    Enum.take(tokens, count)
+  end
+
+  defp next(tokens) do
+    {peek(tokens), Enum.drop(tokens, 1)}
+  end
+
+  defp process_open_curly_brace(acc, rest, tokens) do
+    # Check if this is a tuple or a `do` 
+    # If the curly brace have a \n next it would be a do end block
+    # else it would be a tuple
+  end
+
+  defp process_const(acc, rest, tokens) do
+    # Transform const to a public function
+    # const my_const = "value"
+    # def my_const, do: "value"
+  end
+
+  defp process_comment(acc, rest, tokens) do
+    # Transform multiline comments /*
+  end
+
+  defp process_struct(acc, rest, tokens) do
+    # Transform structs to the elixir format
+  end
+
+  defp transform(acc, []) do
+    acc
+  end
+
+  defp transform(acc, tokens) do
+    # Get the next token
+    {{token, index}, remaining_tokens} =
+      case next(tokens) do
+        {[], []} -> {:eof, []}
+        {[item], remaining_tokens} -> {item, remaining_tokens}
+      end
+
+    # Return the accumulator and remaining tokens
+    {out, remaining_tokens} =
+      case token do
+        # Keywords
+        "module" <> rest -> {acc ++ ["defmodule" <> rest], remaining_tokens}
+        "pub" <> rest -> {acc ++ ["def" <> rest], remaining_tokens}
+        "{" <> rest -> {acc ++ ["do" <> rest], remaining_tokens}
+        "}" <> rest -> {acc ++ ["end" <> rest], remaining_tokens}
+        # End the transpilation
+        token when token == :eof -> {acc, []}
+        # Store characters that are not keywords
+        token -> {acc ++ [token], remaining_tokens}
+      end
+
+    # Traverse the token tree until :eof
+    transform(out, remaining_tokens)
   end
 
   defp tokenize(input) do
@@ -20,37 +68,32 @@ defmodule Kombucha do
     |> String.replace("\n", " \n ")
     |> String.split(~r/(?<=[()\s;=+\-*\/]|[()])/)
     |> Enum.filter(&(&1 != "" && &1 != " "))
-    |> Enum.map(&transform(&1))
+    |> Enum.with_index()
+    |> IO.inspect(label: :Tokens)
+  end
+
+  def eval(input) do
+    transform([], tokenize(input))
+    |> IO.inspect(label: "Elements")
     |> Enum.join()
+    |> IO.inspect(label: "Final String")
     |> Code.eval_string()
     |> then(fn {result, _} -> result end)
   end
-
-  def eval(input), do: tokenize(input)
 end
-```
-
-<!-- livebook:{"output":true} -->
-
-```
-{:module, Kombucha, <<70, 79, 82, 49, 0, 0, 13, ...>>, {:eval, 1}}
 ```
 
 ## Eval
 
 ```elixir
-Kombucha.eval("""
+"""
 module Brew {
   pub strong() {
-    "This is a Kombucha Brewed in 30 days!"
+    
+    "Strong Kombucha"
   }
 }
 Brew.strong()
-""")
-```
-
-<!-- livebook:{"output":true} -->
-
-```
-"This is a Kombucha Brewed in 30 days!"
+"""
+|> Kombucha.eval()
 ```
