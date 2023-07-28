@@ -1,4 +1,4 @@
-# The Kombucha Programming Language
+# 🍹The Kombucha Programming Language
 
 ```elixir
 defmodule Kombucha do
