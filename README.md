@@ -1,40 +1,23 @@
 # 🍹The Kombucha Programming Language
 
-```elixir
-defmodule Kombucha do
-  defp transform(token) do
-      case token do
-          "module" <> rest -> "defmodule" <> rest
-          "{" <> rest -> "do" <> rest
-          "}" <> rest -> "end" <> rest
-          "pub" <> rest -> "def" <> rest
-          token -> token
-    end
-  end
-
-  defp tokenize(input) do
-    input 
-    |> String.trim()
-    |> String.replace("\n", " \n ")
-    |> String.split(~r/(?<=[()\s;=+\-*\/]|[()])/)
-    |> Enum.filter(&(&1 != "" && &1 != " "))
-    |> Enum.map(&(transform(&1)))
-    |> Enum.join()
-    |> Code.eval_string()
-    |> then(fn {result, _} -> result end)
-  end
-
-  def eval(input), do: tokenize(input)
-end
-```
+Kombucha is a experimental programming language.
+A combination between [Elixir](https://elixir-lang.org/) and [Gleam](https://gleam.run/).
 
 ```elixir
-Kombucha.eval("""
 module Brew {
   pub strong() {
     "This is a Kombucha Brewed in 30 days!"
   }
 }
 Brew.strong()
-""")
 ```
+
+## Features
+
+- Transpiles down to _Elixir_. Is essentially _Elixir_ with some _Gleam_ ideas on top.
+- All functions within a _module_ are private by default. Must be made public explicitly with `pub` keyword.
+- Can have constants with `const` keyword.
+- `module` instead of `defmodule`.
+- `struct` instead of `defstruct`.
+- `macro` instead of `defmacro`.
+- `C style comments` (`//`, `/*`)
