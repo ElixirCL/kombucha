@@ -21,3 +21,4 @@ Brew.strong()
 - `struct` instead of `defstruct`.
 - `macro` instead of `defmacro`.
 - `/*` and `*/` multiline comments.
+- Curly braces `{}` for blocks instead of `do` and `end`.
