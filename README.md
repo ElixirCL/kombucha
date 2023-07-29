@@ -1,6 +1,6 @@
 # 🍹The Kombucha Programming Language
 
-Kombucha is a experimental programming language.
+[Kombucha](https://en.wikipedia.org/wiki/Kombucha) is a experimental programming language.
 A combination between [Elixir](https://elixir-lang.org/) and [Gleam](https://gleam.run/).
 
 ```elixir
