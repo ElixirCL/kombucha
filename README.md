@@ -20,6 +20,21 @@ Brew.strong()
 - `module` instead of `defmodule`.
 - `struct` instead of `defstruct`.
 - `macro` instead of `defmacro`.
+- `guard` instead of `defguard`.
 - `/*` and `*/` multiline comments.
 - Curly braces `{}` for blocks instead of `do` and `end`.
 - `$myfunc()` instead of `myfunc.()` for anonymous functions.
+
+## Why?
+
+Is a simple parser implemented in _Elixir_. Maybe it can help learners or a good exercise.
+
+## License
+
+![MPLv2](https://img.shields.io/badge/License-MPL%20v2-blue.svg)
+
+## Credits
+
+![Proudly Coded in - 🇨🇱 Chile](https://img.shields.io/badge/Proudly_Coded_in-🇨🇱_Chile-white?style=for-the-badge)
+
+- Made with <i class="fa fa-heart">&#9829;</i> by <a href="https://ninjas.cl" target="_blank">Ninjas.cl</a>.
