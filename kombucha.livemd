@@ -8,28 +8,67 @@ defmodule Kombucha do
     Enum.take(tokens, count)
   end
 
+  defp next([]) do
+    {[], []}
+  end
+
   defp next(tokens) do
     {peek(tokens), Enum.drop(tokens, 1)}
   end
 
-  defp process_open_curly_brace(acc, rest, tokens) do
-    # Check if this is a tuple or a `do` 
-    # If the curly brace have a \n next it would be a do end block
-    # else it would be a tuple
+  defp next_token(tokens) do
+    case next(tokens) do
+      {[], []} -> {{:eof, nil}, []}
+      {[item], remaining_tokens} -> {item, remaining_tokens}
+    end
   end
 
-  defp process_const(acc, rest, tokens) do
+  defp process_const(acc, _rest, tokens) do
     # Transform const to a public function
-    # const my_const = "value"
+    # cons my_const = "value"
     # def my_const, do: "value"
+    {[{name, _index}], remain} = next(tokens)
+    {_eq, remain} = next(remain)
+    {[{value, _index}], remain} = next(remain)
+    {acc ++ ["def " <> String.trim(name) <> ", do: " <> value <> "\n"], remain}
   end
 
-  defp process_comment(acc, rest, tokens) do
-    # Transform multiline comments /*
+  def process_comment(acc, tokens) do
+    {token, remain} = next_token(tokens)
+
+    case token do
+      {:eof, _} ->
+        {acc, []}
+
+      # Go back to the main flow
+      {"__comment_block_end__" <> _rest, _} ->
+        {acc, remain}
+
+      # Keep consuming tokens until block end or eof
+      _any ->
+        process_comment(acc, remain)
+    end
   end
 
-  defp process_struct(acc, rest, tokens) do
+  defp process_struct(acc, tokens) do
     # Transform structs to the elixir format
+    {{name, _}, remain} = next_token(tokens)
+    {{_do, _}, remain} = next_token(remain)
+    {{_newline, _}, remain} = next_token(remain)
+    {{fields, _}, remain} = next_token(remain)
+
+    {acc ++
+       [
+         """
+         defmodule #{String.trim(name)} do
+           alias __MODULE__
+           defstruct #{String.trim(fields)}
+         """
+       ], remain}
+  end
+
+  defp process_lambda(acc, rest, tokens) do
+    {acc ++ [String.replace_trailing(rest, "(", ".(")], tokens}
   end
 
   defp transform(acc, []) do
@@ -38,20 +77,22 @@ defmodule Kombucha do
 
   defp transform(acc, tokens) do
     # Get the next token
-    {{token, index}, remaining_tokens} =
-      case next(tokens) do
-        {[], []} -> {:eof, []}
-        {[item], remaining_tokens} -> {item, remaining_tokens}
-      end
+    {{token, _index}, remaining_tokens} = next_token(tokens)
 
     # Return the accumulator and remaining tokens
     {out, remaining_tokens} =
       case token do
         # Keywords
         "module" <> rest -> {acc ++ ["defmodule" <> rest], remaining_tokens}
+        "macro" <> rest -> {acc ++ ["defmacro" <> rest], remaining_tokens}
+        "guard" <> rest -> {acc ++ ["defguard" <> rest], remaining_tokens}
+        "struct" <> _rest -> process_struct(acc, remaining_tokens)
         "pub" <> rest -> {acc ++ ["def" <> rest], remaining_tokens}
-        "{" <> rest -> {acc ++ ["do" <> rest], remaining_tokens}
-        "}" <> rest -> {acc ++ ["end" <> rest], remaining_tokens}
+        "fun" <> rest -> {acc ++ ["defp" <> rest], remaining_tokens}
+        "$" <> rest -> process_lambda(acc, rest, remaining_tokens)
+        "const" <> rest -> process_const(acc, rest, remaining_tokens)
+        "__comment_block_start__" <> _rest -> process_comment(acc, remaining_tokens)
+        "}!" <> rest -> {acc ++ ["}" <> rest], remaining_tokens}
         # End the transpilation
         token when token == :eof -> {acc, []}
         # Store characters that are not keywords
@@ -65,22 +106,31 @@ defmodule Kombucha do
   defp tokenize(input) do
     input
     |> String.trim()
+    |> String.replace("\r", "\n")
+    |> String.replace("\r\n", "\n")
+    |> String.replace("{\n", "do\n")
+    |> String.replace("}\n", "end\n")
+    |> String.replace("/*", "__comment_block_start__")
+    |> String.replace("*/", "__comment_block_end__")
     |> String.replace("\n", " \n ")
     |> String.split(~r/(?<=[()\s;=+\-*\/]|[()])/)
     |> Enum.filter(&(&1 != "" && &1 != " "))
     |> Enum.with_index()
-    |> IO.inspect(label: :Tokens)
   end
 
   def eval(input) do
     transform([], tokenize(input))
-    |> IO.inspect(label: "Elements")
     |> Enum.join()
-    |> IO.inspect(label: "Final String")
     |> Code.eval_string()
     |> then(fn {result, _} -> result end)
   end
 end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Kombucha, <<70, 79, 82, 49, 0, 0, 28, ...>>, {:eval, 1}}
 ```
 
 ## Eval
@@ -88,12 +138,111 @@ end
 ```elixir
 """
 module Brew {
-  pub strong() {
-    
+  fun message() {
     "Strong Kombucha"
+  }
+
+  pub strong() {
+    message()
   }
 }
 Brew.strong()
 """
 |> Kombucha.eval()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+"Strong Kombucha"
+```
+
+```elixir
+"""
+hey = fn message -> IO.inspect(message) end
+$hey(:ho)
+"""
+|> Kombucha.eval()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ho
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ho
+```
+
+```elixir
+"""
+{:ok, 1234}
+"""
+|> Kombucha.eval()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:ok, 1234}
+```
+
+```elixir
+"""
+module MyModule {
+  const myconst = 123
+}
+
+MyModule.myconst
+"""
+|> Kombucha.eval()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+123
+```
+
+```elixir
+"""
+/* This is a comment */
+module Hello {
+  const world = "Hello World"
+  /* 
+  This is another comment 
+  */
+}
+
+Hello.world
+"""
+|> Kombucha.eval()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+"Hello \nWorld"
+```
+
+```elixir
+"""
+struct Glass {
+  ~w[liquid]a
+  pub new() {
+    %Glass{ liquid: :kombucha }!
+  }
+}
+Glass.new()
+"""
+|> Kombucha.eval()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%Glass{liquid: :kombucha}
 ```
