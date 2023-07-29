@@ -1,6 +1,36 @@
 # Kombucha Programming Language
 
-## Kombucha
+```elixir
+Mix.install([
+  {:kino, "~> 0.10.0"}
+])
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+Resolving Hex dependencies...
+Resolution completed in 0.078s
+New:
+  kino 0.10.0
+  table 0.1.2
+* Getting kino (Hex package)
+* Getting table (Hex package)
+==> table
+Compiling 5 files (.ex)
+Generated table app
+==> kino
+Compiling 41 files (.ex)
+Generated kino app
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ok
+```
+
+## Kombucha Transpiler
 
 ```elixir
 defmodule Kombucha do
@@ -25,12 +55,23 @@ defmodule Kombucha do
 
   defp process_const(acc, _rest, tokens) do
     # Transform const to a public function
-    # cons my_const = "value"
-    # def my_const, do: "value"
-    {[{name, _index}], remain} = next(tokens)
-    {_eq, remain} = next(remain)
-    {[{value, _index}], remain} = next(remain)
-    {acc ++ ["def " <> String.trim(name) <> ", do: " <> value <> "\n"], remain}
+    # const my_const {
+    #  "value"
+    # }
+    # def my_const do 
+    #  "value"
+    # end
+    #
+    # const my_const = 1324
+    # def my_const, do: 1234
+
+    {{name, _index}, remain} = next_token(tokens)
+    {{value, _index}, remain} = next_token(remain)
+
+    case value do
+      "=" <> _rest -> {acc ++ ["def " <> String.trim(name) <> ", do: "], remain}
+      value -> {acc ++ ["def " <> String.trim(name) <> " " <> value], remain}
+    end
   end
 
   def process_comment(acc, tokens) do
@@ -92,7 +133,7 @@ defmodule Kombucha do
         "$" <> rest -> process_lambda(acc, rest, remaining_tokens)
         "const" <> rest -> process_const(acc, rest, remaining_tokens)
         "__comment_block_start__" <> _rest -> process_comment(acc, remaining_tokens)
-        "}!" <> rest -> {acc ++ ["}" <> rest], remaining_tokens}
+        "};" <> rest -> {acc ++ ["}" <> rest], remaining_tokens}
         # End the transpilation
         token when token == :eof -> {acc, []}
         # Store characters that are not keywords
@@ -109,18 +150,31 @@ defmodule Kombucha do
     |> String.replace("\r", "\n")
     |> String.replace("\r\n", "\n")
     |> String.replace("{\n", "do\n")
+    # lambda functions
+    |> String.replace("{|", "fn")
     |> String.replace("}\n", "end\n")
-    |> String.replace("/*", "__comment_block_start__")
-    |> String.replace("*/", "__comment_block_end__")
+    # for maps, structs
+    |> String.replace("};", " };")
+    |> String.replace("/*", " __comment_block_start__ ")
+    |> String.replace("*/", " __comment_block_end__ ")
     |> String.replace("\n", " \n ")
     |> String.split(~r/(?<=[()\s;=+\-*\/]|[()])/)
     |> Enum.filter(&(&1 != "" && &1 != " "))
     |> Enum.with_index()
   end
 
-  def eval(input) do
+  def transpile(input) do
     transform([], tokenize(input))
     |> Enum.join()
+  end
+
+  def print(input) do
+    transpile(input)
+    |> Kino.Text.new()
+  end
+
+  def eval(input) do
+    transpile(input)
     |> Code.eval_string()
     |> then(fn {result, _} -> result end)
   end
@@ -130,10 +184,10 @@ end
 <!-- livebook:{"output":true} -->
 
 ```
-{:module, Kombucha, <<70, 79, 82, 49, 0, 0, 28, ...>>, {:eval, 1}}
+{:module, Kombucha, <<70, 79, 82, 49, 0, 0, 32, ...>>, {:eval, 1}}
 ```
 
-## Eval
+## Modules
 
 ```elixir
 """
@@ -157,9 +211,14 @@ Brew.strong()
 "Strong Kombucha"
 ```
 
+## Lambdas
+
 ```elixir
 """
-hey = fn message -> IO.inspect(message) end
+hey = {| message -> 
+  to_string(message)
+  |> String.upcase()
+}
 $hey(:ho)
 """
 |> Kombucha.eval()
@@ -168,18 +227,15 @@ $hey(:ho)
 <!-- livebook:{"output":true} -->
 
 ```
-:ho
+"HO"
 ```
 
-<!-- livebook:{"output":true} -->
-
-```
-:ho
-```
+## Tuples
 
 ```elixir
 """
-{:ok, 1234}
+/* needs a semicolon at the end to differentiate from "end" blocks */
+{:ok, 1234};
 """
 |> Kombucha.eval()
 ```
@@ -189,6 +245,8 @@ $hey(:ho)
 ```
 {:ok, 1234}
 ```
+
+## Const
 
 ```elixir
 """
@@ -211,13 +269,21 @@ MyModule.myconst
 """
 /* This is a comment */
 module Hello {
-  const world = "Hello World"
+  const world = "
+  Hello Kombucha
+  World
+  "
   /* 
-  This is another comment 
+  This is another 
+  comment 
   */
+
+  const drink {
+    "Drink 500 Pints of Kombucha"
+  }
 }
 
-Hello.world
+Hello.drink
 """
 |> Kombucha.eval()
 ```
@@ -225,15 +291,17 @@ Hello.world
 <!-- livebook:{"output":true} -->
 
 ```
-"Hello \nWorld"
+"Drink 500 Pints of Kombucha"
 ```
+
+## Structs
 
 ```elixir
 """
 struct Glass {
   ~w[liquid]a
   pub new() {
-    %Glass{ liquid: :kombucha }! %Glass{ liquid: :kombucha }! /* needs a bang at the end and a space before to avoid transpiling to end */
+    %Glass{liquid: :kombucha};
   }
 }
 Glass.new()
