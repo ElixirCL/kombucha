@@ -233,7 +233,7 @@ Hello.world
 struct Glass {
   ~w[liquid]a
   pub new() {
-    %Glass{ liquid: :kombucha }!
+    %Glass{ liquid: :kombucha }! %Glass{ liquid: :kombucha }! /* needs a bang at the end and a space before to avoid transpiling to end */
   }
 }
 Glass.new()
