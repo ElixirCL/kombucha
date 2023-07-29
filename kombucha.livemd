@@ -1,4 +1,4 @@
-# Kombucha Programming Language
+# 🍹The Kombucha Programming Language
 
 ```elixir
 Mix.install([
@@ -31,6 +31,9 @@ Generated kino app
 ```
 
 ## Kombucha Transpiler
+
+[Kombucha](https://en.wikipedia.org/wiki/Kombucha) is a experimental programming language.
+A combination between [Elixir](https://elixir-lang.org/) and [Gleam](https://gleam.run/).
 
 ```elixir
 defmodule Kombucha do
