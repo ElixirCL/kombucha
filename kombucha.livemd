@@ -110,8 +110,8 @@ defmodule Kombucha do
       case token do
         # Keywords
         "module" <> rest -> {acc ++ ["defmodule" <> rest], remaining_tokens}
-        "macro" <> rest -> {acc ++ ["defmacro" <> rest], remaining_tokens}
-        "guard" <> rest -> {acc ++ ["defguard" <> rest], remaining_tokens}
+        "macro" <> rest -> {acc ++ ["defmacrop" <> rest], remaining_tokens}
+        "guard" <> rest -> {acc ++ ["defguardp" <> rest], remaining_tokens}
         "struct" <> _rest -> process_struct(acc, remaining_tokens)
         "pub" <> rest -> {acc ++ ["def" <> rest], remaining_tokens}
         "fun" <> rest -> {acc ++ ["defp" <> rest], remaining_tokens}
@@ -140,6 +140,10 @@ defmodule Kombucha do
     |> String.replace("}\n", "end\n")
     # for maps, structs
     |> String.replace("};", " };")
+    # macros and guards
+    |> String.replace("pub macro", "defmacro ")
+    |> String.replace("pub guard", "defguard ")
+    # comments
     |> String.replace("/*", " __comment_block_start__ ")
     |> String.replace("*/", " __comment_block_end__ ")
     |> String.replace("\n", " \n ")
@@ -174,6 +178,8 @@ end
 
 ## Modules
 
+Modules are defined by `module` keyword and curly braces
+
 ```elixir
 """
 module Brew {
@@ -198,6 +204,8 @@ Brew.strong()
 
 ## Lambdas
 
+Lambdas are defined by the `${` keyword. And later called by using `$`.
+
 ```elixir
 """
 heyho = ${ message ->
@@ -217,9 +225,10 @@ $heyho(:letsgo)
 
 ## Tuples
 
+Tuples and Maps needs a semicolon at the end to differentiate from "end" blocks
+
 ```elixir
 """
-/* needs a semicolon at the end to differentiate from "end" blocks */
 {:ok, 1234};
 """
 |> Kombucha.eval()
@@ -231,7 +240,30 @@ $heyho(:letsgo)
 {:ok, 1234}
 ```
 
+## Maps
+
+```elixir
+"""
+module City {
+  pub map(city) {
+    %{city: city};
+  }
+}
+
+City.map(:santiago)
+"""
+|> Kombucha.eval()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+%{city: :santiago}
+```
+
 ## Const
+
+Const transpile down to public functions.
 
 ```elixir
 """
@@ -252,23 +284,20 @@ MyModule.myconst
 
 ```elixir
 """
-/* This is a comment */
-module Hello {
-  const world = "
-  Hello Kombucha
-  World
-  "
+module Bar {
+  # Also private consts as in elixir
+  @count 500
+
   /*
-  This is another
-  comment
+  Consts can also be used with blocks
   */
 
-  const drink {
-    "Drink 500 Pints of Kombucha"
+  const drinks {
+    [:drink, @count, :kombucha]
   }
 }
 
-Hello.drink
+Bar.drinks
 """
 |> Kombucha.eval()
 ```
@@ -276,10 +305,12 @@ Hello.drink
 <!-- livebook:{"output":true} -->
 
 ```
-"Drink 500 Pints of Kombucha"
+[:drink, 500, :kombucha]
 ```
 
 ## Structs
+
+Structs are modules that alias the `__MODULE__` and uses the `defstruct`
 
 ```elixir
 """
@@ -300,3 +331,41 @@ Glass.new()
 ```
 %Glass{liquid: :kombucha}
 ```
+
+## Macros and Guards
+
+Macros and guards are private by default (using `defmacrop` and `defguardp`). To make them public use `pub macro` and `pub guard`.
+
+```elixir
+"""
+["macro": macro, "public_macro": pub macro, "guard": guard, "public_guard": pub guard]
+"""
+|> Kombucha.print()
+```
+
+```elixir
+"""
+module MyInteger {
+  pub guard is_even(term) when is_integer(term) and rem(term, 2) == 0
+
+  pub even?(number) when is_even(number) {
+    :is_even
+  }
+
+  pub even?(_number) {
+    :not_even
+  }
+}
+
+[MyInteger.even?(2), MyInteger.even?(1)]
+"""
+|> Kombucha.eval()
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+[:is_even, :not_even]
+```
+
+
