@@ -36,5 +36,4 @@ Is a simple parser implemented in _Elixir_. Maybe it can help learners or a good
 ## Credits
 
 ![Proudly Coded in - 🇨🇱 Chile](https://img.shields.io/badge/Proudly_Coded_in-🇨🇱_Chile-white?style=for-the-badge)
-
-- Made with <i class="fa fa-heart">&#9829;</i> by <a href="https://ninjas.cl" target="_blank">Ninjas.cl</a>.
+![Made With ❤️ By - Ninjas.cl](https://img.shields.io/badge/Made_With_❤️_By-Ninjas.cl-2ea44f?style=for-the-badge)
