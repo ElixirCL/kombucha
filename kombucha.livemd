@@ -9,24 +9,6 @@ Mix.install([
 <!-- livebook:{"output":true} -->
 
 ```
-Resolving Hex dependencies...
-Resolution completed in 0.078s
-New:
-  kino 0.10.0
-  table 0.1.2
-* Getting kino (Hex package)
-* Getting table (Hex package)
-==> table
-Compiling 5 files (.ex)
-Generated table app
-==> kino
-Compiling 41 files (.ex)
-Generated kino app
-```
-
-<!-- livebook:{"output":true} -->
-
-```
 :ok
 ```
 
@@ -61,7 +43,7 @@ defmodule Kombucha do
     # const my_const {
     #  "value"
     # }
-    # def my_const do 
+    # def my_const do
     #  "value"
     # end
     #
@@ -150,11 +132,11 @@ defmodule Kombucha do
   defp tokenize(input) do
     input
     |> String.trim()
-    |> String.replace("\r", "\n")
     |> String.replace("\r\n", "\n")
+    |> String.replace("\r", "\n")
     |> String.replace("{\n", "do\n")
     # lambda functions
-    |> String.replace("{|", "fn")
+    |> String.replace("${", "fn")
     |> String.replace("}\n", "end\n")
     # for maps, structs
     |> String.replace("};", " };")
@@ -187,7 +169,7 @@ end
 <!-- livebook:{"output":true} -->
 
 ```
-{:module, Kombucha, <<70, 79, 82, 49, 0, 0, 32, ...>>, {:eval, 1}}
+{:module, Kombucha, <<70, 79, 82, 49, 0, 0, 31, ...>>, {:eval, 1}}
 ```
 
 ## Modules
@@ -218,11 +200,11 @@ Brew.strong()
 
 ```elixir
 """
-hey = {| message -> 
+heyho = ${ message ->
   to_string(message)
   |> String.upcase()
 }
-$hey(:ho)
+$heyho(:letsgo)
 """
 |> Kombucha.eval()
 ```
@@ -230,7 +212,7 @@ $hey(:ho)
 <!-- livebook:{"output":true} -->
 
 ```
-"HO"
+"LETSGO"
 ```
 
 ## Tuples
@@ -276,9 +258,9 @@ module Hello {
   Hello Kombucha
   World
   "
-  /* 
-  This is another 
-  comment 
+  /*
+  This is another
+  comment
   */
 
   const drink {
@@ -303,6 +285,7 @@ Hello.drink
 """
 struct Glass {
   ~w[liquid]a
+
   pub new() {
     %Glass{liquid: :kombucha};
   }
